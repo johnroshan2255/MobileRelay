@@ -1,0 +1,47 @@
+name: mobile_relay
+description: "MobileRelay — self-hosted Android SMS Gateway API server."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.8
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State management
+  provider: ^6.1.2
+
+  # Network info (get local WiFi IP)
+  network_info_plus: ^6.0.0
+
+  # Runtime permissions
+  permission_handler: ^12.0.0
+
+  # Date/time formatting
+  intl: ^0.20.1
+
+  # Persist API key setting
+  shared_preferences: ^2.3.2
+
+  # Environment variables
+  flutter_dotenv: ^5.2.1
+
+  # WebSocket client for remote mode
+  web_socket_channel: ^3.0.1
+
+  # UUID generation for request IDs
+  uuid: ^4.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
