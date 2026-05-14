@@ -12,6 +12,9 @@ void main() async {
 
   // Load environment variables
   await dotenv.load(fileName: '.env');
+  
+  // Log the API key from .env for debugging
+  print('📄 API Key from .env: ${dotenv.env['API_KEY']}');
 
   // Lock to portrait orientation
   SystemChrome.setPreferredOrientations([

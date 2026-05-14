@@ -70,6 +70,11 @@ class AppProvider extends ChangeNotifier {
   /// Load settings from storage
   Future<void> _loadSettings() async {
     _settings = await AppSettings.load(defaultApiKey: AppConstants.apiKey);
+    
+    // ALWAYS override API key with the one from .env to ensure it's current
+    _settings = _settings.copyWith(apiKey: AppConstants.apiKey);
+    
+    print('📱 Settings loaded - Mode: ${_settings.mode}, API Key: ${_settings.apiKey}');
     notifyListeners();
   }
 
@@ -131,6 +136,7 @@ class AppProvider extends ChangeNotifier {
           throw Exception('Remote server URL not configured');
         }
 
+        print('🌐 Starting remote mode with API key: ${_settings.apiKey}');
         await _websocketService.connect(
           url: remoteUrl,
           apiKey: _settings.apiKey,

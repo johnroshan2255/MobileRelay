@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../models/request_log.dart';
@@ -45,9 +47,28 @@ class WebSocketService {
     _lastError = null;
 
     try {
-      _channel = WebSocketChannel.connect(Uri.parse(url));
+      // Use IOWebSocketChannel for proper ws:// and wss:// support
+      final uri = Uri.parse(url);
+      print('🔌 Attempting WebSocket connection to: $uri');
+      
+      final socket = await WebSocket.connect(
+        uri.toString(),
+        headers: {
+          'User-Agent': 'MobileRelay/1.0',
+        },
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('WebSocket connection timed out after 10 seconds');
+        },
+      );
+      
+      print('✅ WebSocket connected successfully');
+      _channel = IOWebSocketChannel(socket);
       
       // Send authentication message
+      print('🔑 Sending authentication...');
+      print('🔑 API Key being sent: $apiKey');
       _sendMessage({
         'type': 'auth',
         'api_key': apiKey,
@@ -56,13 +77,18 @@ class WebSocketService {
 
       // Listen for messages
       _subscription = _channel!.stream.listen(
-        _handleMessage,
+        (data) {
+          print('📨 Received message: $data');
+          _handleMessage(data);
+        },
         onError: (error) {
+          print('❌ WebSocket error: $error');
           _lastError = error.toString();
           _setState(WebSocketState.error);
           _scheduleReconnect(url, apiKey);
         },
         onDone: () {
+          print('🔌 WebSocket connection closed');
           _setState(WebSocketState.disconnected);
           _scheduleReconnect(url, apiKey);
         },
@@ -70,8 +96,10 @@ class WebSocketService {
       );
 
       _setState(WebSocketState.connected);
+      print('✅ WebSocket service is now connected and listening');
       _reconnectAttempts = 0;
     } catch (e) {
+      print('❌ Failed to connect: $e');
       _lastError = e.toString();
       _setState(WebSocketState.error);
       _scheduleReconnect(url, apiKey);
@@ -99,15 +127,21 @@ class WebSocketService {
 
       switch (type) {
         case 'auth_result':
+          print('🔑 Auth result received: ${message['success']}');
           final success = message['success'] as bool? ?? false;
           if (!success) {
-            _lastError = 'Authentication failed';
+            final errorMsg = message['error'] ?? 'Authentication failed';
+            print('❌ Auth failed: $errorMsg');
+            _lastError = errorMsg.toString();
             _setState(WebSocketState.error);
             disconnect();
+          } else {
+            print('✅ Authentication successful');
           }
           break;
 
         case 'send_sms':
+          print('📱 SMS request received');
           _handleSendSmsRequest(message);
           break;
 
@@ -116,6 +150,7 @@ class WebSocketService {
           break;
 
         default:
+          print('⚠️ Unknown message type: $type');
           break;
       }
     } catch (e) {
